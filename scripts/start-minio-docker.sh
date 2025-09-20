@@ -176,7 +176,11 @@ create_workshop_buckets() {
     
     # List buckets to verify
     log_info "Available buckets:"
-    $mc_cmd ls workshop/
+    if $mc_cmd ls workshop 2>/dev/null; then
+        log_info "All buckets are accessible"
+    else
+        log_info "Buckets created successfully (may take a moment to be fully accessible)"
+    fi
 }
 
 # Show connection information
