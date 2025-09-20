@@ -42,9 +42,9 @@ fi
 if ! command_exists kind; then
     echo "Installing kind..."
     if [ $(uname -m) = x86_64 ]; then
-        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64 || { echo "Failed to download kind"; exit 1; }
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-amd64 || { echo "Failed to download kind"; exit 1; }
     elif [ $(uname -m) = aarch64 ]; then
-        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-arm64 || { echo "Failed to download kind"; exit 1; }
+        curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.30.0/kind-linux-arm64 || { echo "Failed to download kind"; exit 1; }
     else
         echo "Unsupported architecture for kind: $(uname -m)"
         exit 1
