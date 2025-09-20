@@ -6,10 +6,6 @@
             "version": "latest",
             "helm": "latest",
             "minikube": "none"
-        },
-        "ghcr.io/devcontainers/features/docker-in-docker:2": {
-            "version": "latest",
-            "dockerDashComposeVersion": "v2"
         }
     },
     "postCreateCommand": "bash .devcontainer/post-create.sh",
