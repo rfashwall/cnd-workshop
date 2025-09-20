@@ -19,7 +19,7 @@ if ! command_exists operator-sdk; then
     echo "Installing operator-sdk..."
     export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
     export OS=$(uname | awk '{print tolower($0)}')
-    export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.32.0
+    export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.41.1
     echo "Downloading operator-sdk for ${OS}_${ARCH}..."
     curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH} || { echo "Failed to download operator-sdk"; exit 1; }
     chmod +x operator-sdk_${OS}_${ARCH}
