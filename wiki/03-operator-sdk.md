@@ -1,59 +1,47 @@
-# Operator SDK Introduction
+# Operator SDK and Backup Controller Implementation
 
-The Operator SDK is a framework that makes it easier to build Kubernetes Operators. It provides tools and libraries to generate, build, and package Operators following best practices.
+In this stage, we'll use the Operator SDK to create a backup controller that manages Kubernetes resource backups.
 
 ## What is the Operator SDK?
 
-The Operator SDK is part of the Operator Framework and provides:
+The Operator SDK is a tool that helps you build Kubernetes Operators quickly and easily. Think of it as a project generator that creates all the boilerplate code you need.
 
-- **Project scaffolding**: Generate boilerplate code for new Operators
-- **Code generation**: Automatically generate Kubernetes client code
-- **Testing utilities**: Tools for unit and integration testing
-- **Build and deployment**: Streamlined build and deployment workflows
-- **Best practices**: Opinionated structure following Kubernetes conventions
+### What does the Operator SDK create for you?
+
+When you use the Operator SDK, it generates a complete project structure with:
+
+1. **Custom Resource Definition (CRD)** - This defines a new type of Kubernetes resource (like `Backup`)
+2. **Controller Code** - This watches for your custom resources and takes action
+3. **Configuration Files** - RBAC permissions, deployment manifests, etc.
+4. **Build Tools** - Makefile with commands to build, test, and deploy
+5. **Project Structure** - Organized folders following Kubernetes best practices
+
+### Simple Analogy
+
+Think of the Operator SDK like a house blueprint generator:
+- You tell it "I want a house for backups" 
+- It gives you the complete blueprints, foundation, and basic structure
+- You then customize the rooms (add your backup logic)
 
 ### Operator SDK vs Manual Development
 
-| Aspect | Manual Development | Operator SDK |
-|--------|-------------------|--------------|
-| Setup Time | Hours/Days | Minutes |
-| Boilerplate Code | Write everything | Auto-generated |
-| Best Practices | Must research | Built-in |
-| Testing | Manual setup | Integrated tools |
-| Deployment | Custom scripts | Built-in commands |
+| What you need | Manual Way | Operator SDK Way |
+|---------------|------------|------------------|
+| Project setup | Hours of boilerplate | 2 minutes |
+| CRD definition | Write YAML by hand | Auto-generated |
+| Controller skeleton | Start from scratch | Ready template |
+| Build system | Create your own | Makefile included |
+| RBAC permissions | Figure out yourself | Generated for you |
 
-## Operator SDK Architecture
+## What We'll Build
 
-The Operator SDK generates projects with a standard structure:
+We're going to create a **Backup Operator** that:
+1. Watches for `Backup` custom resources
+2. Reads the backup configuration (what to backup, where to store it)
+3. Performs the actual backup operations
+4. Updates the status to show progress
 
-```
-my-operator/
-├── Dockerfile                 # Container image build
-├── Makefile                  # Build and deployment targets
-├── PROJECT                   # Project metadata
-├── README.md                 # Project documentation
-├── go.mod                    # Go module definition
-├── go.sum                    # Go module checksums
-├── main.go                   # Operator entry point
-├── api/                      # Custom Resource Definitions
-│   └── v1/
-│       ├── groupversion_info.go
-│       ├── backup_types.go   # Custom Resource types
-│       └── zz_generated.deepcopy.go
-├── config/                   # Kubernetes manifests
-│   ├── crd/                  # CRD definitions
-│   ├── default/              # Default deployment
-│   ├── manager/              # Manager deployment
-│   ├── rbac/                 # RBAC permissions
-│   └── samples/              # Sample custom resources
-├── controllers/              # Controller implementations
-│   ├── backup_controller.go  # Main controller logic
-│   └── suite_test.go         # Test suite setup
-└── hack/                     # Utility scripts
-    └── boilerplate.go.txt
-```
-
-## Installing Operator SDK
+## Prerequisites
 
 The Operator SDK should already be installed in your Codespaces environment. Let's verify:
 
@@ -65,11 +53,37 @@ operator-sdk version
 # operator-sdk version: "v1.32.0", commit: "...", kubernetes version: "v1.28.0", go version: "go1.21.3", GOOS: "linux", GOARCH: "amd64"
 ```
 
-If you need to install it locally, follow the installation guide from the [setup documentation](00-setup.md).
+## Understanding the Generated Project Structure
 
-## Creating Your First Operator
+Before we start building, let's understand what the Operator SDK will create for us:
 
-Let's create a backup operator that will manage backup operations for applications.
+```
+cluster-backup-operator/          # Our project root
+├── Dockerfile                   # How to build our operator as a container
+├── Makefile                     # Commands to build, test, deploy
+├── PROJECT                      # Metadata about our project
+├── go.mod                       # Go dependencies
+├── cmd/main.go                  # The main entry point - starts our operator
+├── api/v1/                      # Custom Resource Definitions
+│   └── backup_types.go          # Defines what a "Backup" looks like
+├── internal/controller/         # The brain of our operator
+│   └── backup_controller.go     # Logic for handling Backup resources
+└── config/                      # Kubernetes configuration files
+    ├── crd/                     # Custom Resource Definition manifests
+    ├── rbac/                    # Permissions our operator needs
+    └── samples/                 # Example Backup resources
+```
+
+### Key Files Explained
+
+- **`api/v1/backup_types.go`** - Defines the structure of our Backup resource (what fields it has)
+- **`internal/controller/backup_controller.go`** - Contains the logic that runs when Backup resources are created/updated
+- **`config/crd/`** - Kubernetes manifests that register our new Backup resource type
+- **`config/rbac/`** - Permissions that allow our controller to read/write Kubernetes resources
+
+## Step-by-Step Implementation
+
+Now let's build our backup operator step by step.
 
 ### Step 1: Initialize the Operator Project
 
@@ -88,13 +102,10 @@ ls -la
 ```
 
 **What this command does:**
-- Creates a new Go module with the specified repository path
-- Generates the basic project structure
-- Sets up the domain for your Custom Resources
-- Creates initial configuration files
-- Generates the basic project structure
-- Sets up the domain for your Custom Resources
-- Creates initial configuration files
+- Creates a new Go project with all the necessary files
+- Sets up `cnd.dk` as the domain for our custom resources
+- Generates Makefile, Dockerfile, and basic configuration
+- Creates the folder structure we saw above
 
 ### Step 2: Create a Custom Resource API
 
@@ -110,111 +121,29 @@ operator-sdk create api --group=backup --version=v1 --kind=Backup --resource --c
 ```
 
 **What this command creates:**
-- `api/v1/backup_types.go`: Defines the Backup Custom Resource structure
-- `internal/controller/backup_controller.go`: Contains the controller logic
-- CRD manifests in `config/crd/bases/`
-- RBAC permissions in `config/rbac/`
-- Sample resources in `config/samples/`
+- **Backup Resource Definition** (`api/v1/backup_types.go`) - Defines what a Backup looks like
+- **Controller Logic** (`internal/controller/backup_controller.go`) - The code that handles Backup resources
+- **Kubernetes Manifests** - Files that tell Kubernetes about our new Backup resource type
+- **Sample Files** - Example Backup resources we can use for testing
 
-## Understanding the Generated Code
+### Step 3: Understand What Was Generated
 
-### Custom Resource Types (api/v1/backup_types.go)
-
-The generated types file defines the structure of your Custom Resource:
-
-```go
-// BackupSpec defines the desired state of Backup
-type BackupSpec struct {
-    // INSERT ADDITIONAL SPEC FIELDS - desired state of cluster
-    // Important: Run "make" to regenerate code after modifying this file
-
-    // Foo is an example field of Backup. Edit backup_types.go to remove/update
-    Foo string `json:"foo,omitempty"`
-}
-
-// BackupStatus defines the observed state of Backup
-type BackupStatus struct {
-    // INSERT ADDITIONAL STATUS FIELDS - define observed state of cluster
-    // Important: Run "make" to regenerate code after modifying this file
-}
-
-// Backup is the Schema for the backups API
-type Backup struct {
-    metav1.TypeMeta   `json:",inline"`
-    metav1.ObjectMeta `json:"metadata,omitempty"`
-
-    Spec   BackupSpec   `json:"spec,omitempty"`
-    Status BackupStatus `json:"status,omitempty"`
-}
-```
-
-### Controller Skeleton (controllers/backup_controller.go)
-
-The controller contains the reconciliation logic:
-
-```go
-func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
-    _ = log.FromContext(ctx)
-
-    // TODO(user): your logic here
-
-    return ctrl.Result{}, nil
-}
-```
-
-### Main Entry Point (main.go)
-
-The main.go file sets up the manager and registers controllers:
-
-```go
-func main() {
-    // Manager setup
-    mgr, err := ctrl.NewManager(ctrl.GetConfigOrDie(), ctrl.Options{
-        Scheme:                 scheme,
-        MetricsBindAddress:     metricsAddr,
-        Port:                   9443,
-        HealthProbeBindAddress: probeAddr,
-        LeaderElection:         enableLeaderElection,
-        LeaderElectionID:       "backup-operator",
-    })
-
-    // Controller registration
-    if err = (&controllers.BackupReconciler{
-        Client: mgr.GetClient(),
-        Scheme: mgr.GetScheme(),
-    }).SetupWithManager(mgr); err != nil {
-        setupLog.Error(err, "unable to create controller", "controller", "Backup")
-        os.Exit(1)
-    }
-}
-```
-
-## Makefile Targets
-
-The generated Makefile provides useful targets for development:
+Let's look at what the Operator SDK created for us. First, check the generated Backup resource definition:
 
 ```bash
-# View available targets
-make help
-
-# Common targets:
-make manifests    # Generate CRD and RBAC manifests
-make generate     # Generate code (deepcopy methods)
-make fmt          # Format Go code
-make vet          # Run go vet
-make test         # Run unit tests
-make build        # Build the operator binary
-make run          # Run the operator locally
-make docker-build # Build container image
-make deploy       # Deploy to Kubernetes cluster
-make undeploy     # Remove from Kubernetes cluster
+# Look at the generated backup types
+cat api/v1/backup_types.go
 ```
 
-## Hands-on Exercise: Customize the Backup Resource
+You'll see it has placeholder fields like `Foo string`. We need to replace these with real backup configuration.
 
-Let's customize our Backup resource to make it more realistic:
+### Step 4: Customize the Backup Resource Types
 
-### Step 1: Update the Backup Types
+Now let's define what our Backup resource should look like. We want to specify:
+- **What to backup** (which namespace, which resources)
+- **When to backup** (schedule)
+- **Where to store it** (Minio configuration)
+- **How long to keep it** (retention)
 
 Edit `api/v1/backup_types.go` to define a proper backup specification:
 
@@ -294,7 +223,7 @@ const (
 )
 ```
 
-### Step 2: Generate Updated Code
+### Step 5: Generate Updated Code
 
 After modifying the types, regenerate the code:
 
@@ -306,7 +235,7 @@ make generate manifests
 git status
 ```
 
-### Step 3: Create a Sample Backup Resource
+### Step 6: Create a Sample Backup Resource
 
 Update `config/samples/backup_v1_backup.yaml`:
 
@@ -337,7 +266,87 @@ spec:
     password: "minioadmin"
 ```
 
-### Step 4: Test the CRD Installation
+### Step 7: Understand the Controller Skeleton
+
+Before we add our logic, let's look at what the Operator SDK generated:
+
+```bash
+# Look at the generated controller
+cat internal/controller/backup_controller.go
+```
+
+You'll see a `Reconcile` function with a TODO comment. This is where we'll add our backup logic.
+
+### Step 8: Implement Basic Controller Logic
+
+The controller's job is to:
+1. **Watch** for Backup resources being created/updated/deleted
+2. **Read** the backup configuration 
+3. **Take action** based on what the user wants
+4. **Update status** to show what's happening
+
+Let's replace the TODO with some basic logic:
+
+Now let's add some basic logic to our controller. Edit `internal/controller/backup_controller.go` and replace the Reconcile function:
+
+```go
+func (r *BackupReconciler) Reconcile(ctx context.Context, req ctrl.Request) (ctrl.Result, error) {
+    log := logf.FromContext(ctx)
+
+    // Fetch the Backup instance
+    backup := &backupv1.Backup{}
+    err := r.Get(ctx, req.NamespacedName, backup)
+    if err != nil {
+        if client.IgnoreNotFound(err) == nil {
+            log.Info("Backup resource not found. Ignoring since object must be deleted")
+            return ctrl.Result{}, nil
+        }
+        log.Error(err, "Failed to get Backup")
+        return ctrl.Result{}, err
+    }
+
+    log.Info("Reconciling Backup", "backup", backup.Name, "namespace", backup.Namespace)
+
+    // Initialize status if not set
+    if backup.Status.Phase == "" {
+        backup.Status.Phase = backupv1.BackupPhaseNew
+        backup.Status.Message = "Backup resource created"
+        if err := r.Status().Update(ctx, backup); err != nil {
+            log.Error(err, "Failed to update Backup status")
+            return ctrl.Result{}, err
+        }
+        log.Info("Initialized backup status", "phase", backup.Status.Phase)
+        return ctrl.Result{Requeue: true}, nil
+    }
+
+    // Log the current backup configuration
+    log.Info("Backup configuration",
+        "source.namespace", backup.Spec.Source.Namespace,
+        "schedule", backup.Spec.Schedule,
+        "storage.provider", backup.Spec.StorageLocation.Provider,
+        "storage.bucket", backup.Spec.StorageLocation.Bucket,
+        "current.phase", backup.Status.Phase)
+
+    // Update phase to scheduled if still new
+    if backup.Status.Phase == backupv1.BackupPhaseNew {
+        backup.Status.Phase = backupv1.BackupPhaseScheduled
+        backup.Status.Message = "Backup scheduled according to cron schedule"
+        if err := r.Status().Update(ctx, backup); err != nil {
+            log.Error(err, "Failed to update Backup status to scheduled")
+            return ctrl.Result{}, err
+        }
+        log.Info("Updated backup status to scheduled")
+    }
+
+    // TODO: Implement actual backup logic here
+    // For now, just log that we would perform a backup
+    log.Info("Backup reconciliation completed", "backup", backup.Name)
+
+    return ctrl.Result{}, nil
+}
+```
+
+### Step 9: Test the CRD Installation
 
 Let's install our CRD and test creating a backup resource:
 
@@ -356,56 +365,177 @@ kubectl get backups
 kubectl describe backup backup-sample
 ```
 
-## Running the Operator
+### Step 10: Run and Test the Controller
 
-### Option 1: Run Locally (Development)
+1. **Install the CRDs:**
+   ```bash
+   make install
+   ```
 
-For development, you can run the operator outside the cluster:
+2. **Run the controller locally:**
+   ```bash
+   make run
+   ```
 
-```bash
-# Run the operator locally
-make run
+3. **In another terminal, create a backup resource:**
+   ```bash
+   kubectl apply -f config/samples/backup_v1_backup.yaml
+   ```
 
-# In another terminal, watch the logs and test
-kubectl get backups --watch
+4. **Check the backup status:**
+   ```bash
+   kubectl get backups
+   kubectl describe backup backup-sample
+   ```
+
+5. **Watch the controller logs in the first terminal** - you should see reconciliation events.
+
+### Step 11: Create and Test Custom Backup Resources
+
+Create a custom backup resource to test different configurations:
+
+```yaml
+# Save as my-backup.yaml
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: my-app-backup
+  namespace: default
+spec:
+  source:
+    namespace: "default"
+    labelSelector:
+      matchLabels:
+        app: "my-app"
+  schedule: "*/5 * * * *"  # Every 5 minutes for testing
+  storageLocation:
+    provider: "minio"
+    bucket: "test-backups"
+    endpoint: "http://localhost:9000"
+    username: "minioadmin"
+    password: "minioadmin"
 ```
 
-### Option 2: Deploy to Cluster (Production-like)
-
-For a more production-like setup:
-
+Apply and monitor:
 ```bash
-# Build and load the image into kind
-make docker-build IMG=backup-operator:latest
-kind load docker-image backup-operator:latest --name workshop
-
-# Deploy to the cluster
-make deploy IMG=backup-operator:latest
-
-# Check the deployment
-kubectl get deployment -n backup-operator-system
-kubectl logs -n backup-operator-system deployment/backup-operator-controller-manager
+kubectl apply -f my-backup.yaml
+kubectl get backup my-app-backup -o yaml
 ```
 
-## Next Steps: Implementing Controller Logic
+## Understanding What We Built
 
-In the next section, we'll implement the actual backup controller logic. For now, you have:
+Now that we've implemented our backup controller, let's understand the key components and how they work together.
 
-1. ✅ A working Operator SDK project structure
-2. ✅ Custom Resource Definition for Backup
-3. ✅ Generated controller skeleton
-4. ✅ Build and deployment configuration
+### Operator SDK Architecture
 
-The controller currently doesn't do anything meaningful - it just logs that it received a reconciliation request. In the next stage, we'll implement the actual backup logic.
+The Operator SDK generated a project with this structure:
+
+```
+cluster-backup-operator/
+├── Dockerfile                 # Container image build
+├── Makefile                  # Build and deployment targets
+├── PROJECT                   # Project metadata
+├── README.md                 # Project documentation
+├── go.mod                    # Go module definition
+├── go.sum                    # Go module checksums
+├── cmd/main.go               # Operator entry point
+├── api/                      # Custom Resource Definitions
+│   └── v1/
+│       ├── groupversion_info.go
+│       ├── backup_types.go   # Custom Resource types
+│       └── zz_generated.deepcopy.go
+├── config/                   # Kubernetes manifests
+│   ├── crd/                  # CRD definitions
+│   ├── default/              # Default deployment
+│   ├── manager/              # Manager deployment
+│   ├── rbac/                 # RBAC permissions
+│   └── samples/              # Sample custom resources
+├── internal/controller/      # Controller implementations
+│   ├── backup_controller.go  # Main controller logic
+│   └── suite_test.go         # Test suite setup
+└── hack/                     # Utility scripts
+    └── boilerplate.go.txt
+```
+
+### Controller Architecture
+
+A Kubernetes controller follows the controller pattern:
+
+```
+┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
+│   API Server    │◄──►│    Controller    │◄──►│  External APIs  │
+│                 │    │                  │    │   (Minio, etc)  │
+│  - Watch Events │    │  - Reconcile     │    │                 │
+│  - Store State  │    │  - Update Status │    │                 │
+└─────────────────┘    └──────────────────┘    └─────────────────┘
+```
+
+### Key Components Explained
+
+1. **Custom Resource Definition (CRD)**: Defines the schema for `Backup` resources
+2. **Controller Logic**: Implements the reconciliation loop
+3. **Status Management**: Updates the backup status and progress
+4. **RBAC Permissions**: Defines what the controller can access
+
+### Understanding the Controller Logic
+
+Our controller implements these key functions:
+
+1. **Resource Fetching**: Gets the Backup resource from the API server
+2. **Status Initialization**: Sets initial status for new resources
+3. **Phase Management**: Tracks backup lifecycle (New → Scheduled → Running → Completed/Failed)
+4. **Logging**: Provides visibility into controller operations
+
+### Backup Status Management
+
+The controller manages different phases:
+
+- `New`: Backup resource just created
+- `Scheduled`: Backup scheduled according to cron
+- `Running`: Backup operation in progress (to be implemented)
+- `Completed`: Backup successfully completed (to be implemented)
+- `Failed`: Backup operation failed (to be implemented)
+
+### RBAC Permissions
+
+The controller needs specific permissions defined by kubebuilder annotations:
+
+```go
+// +kubebuilder:rbac:groups=backup.cnd.dk,resources=backups,verbs=get;list;watch;create;update;patch;delete
+// +kubebuilder:rbac:groups=backup.cnd.dk,resources=backups/status,verbs=get;update;patch
+```
+
+These annotations generate the necessary RBAC manifests in `config/rbac/`.
+
+### Makefile Targets
+
+The generated Makefile provides useful targets for development:
+
+```bash
+# View available targets
+make help
+
+# Common targets:
+make manifests    # Generate CRD and RBAC manifests
+make generate     # Generate code (deepcopy methods)
+make fmt          # Format Go code
+make vet          # Run go vet
+make test         # Run unit tests
+make build        # Build the operator binary
+make run          # Run the operator locally
+make docker-build # Build container image
+make deploy       # Deploy to Kubernetes cluster
+make undeploy     # Remove from Kubernetes cluster
+```
 
 ## Key Takeaways
 
 1. **Operator SDK accelerates development** by providing scaffolding and best practices
 2. **Custom Resources extend Kubernetes** with domain-specific APIs
-3. **Generated code follows conventions** and includes necessary boilerplate
-4. **Makefile provides standard targets** for common development tasks
-5. **Local development is supported** for faster iteration
-6. **The project structure is opinionated** but follows Kubernetes community standards
+3. **Controllers watch for changes** and reconcile desired vs actual state
+4. **Status management** provides visibility into resource lifecycle
+5. **RBAC permissions** control what the controller can access
+6. **Local development** allows fast iteration and testing
 
 ## Troubleshooting
 
@@ -459,14 +589,130 @@ make uninstall
 make undeploy
 ```
 
+## Checkpoint: Operator SDK Setup Complete
+
+🎉 **Congratulations!** You've successfully completed the Operator SDK setup. At this point you should have:
+
+- ✅ A complete operator project structure in `cluster-backup-operator/`
+- ✅ Custom Resource Definition for Backup resources
+- ✅ Generated controller skeleton
+- ✅ Working Makefile with build targets
+- ✅ Sample Backup resource with plain text credentials
+
+### Checkpoint Branch
+
+If you need to catch up or start fresh from this point, you can checkout the checkpoint branch:
+
+```bash
+# Save any current work
+git stash
+
+# Checkout the checkpoint branch
+git checkout checkpoint-03-operator-sdk
+
+# Or if you want to start fresh
+git checkout checkpoint-03-operator-sdk
+git checkout -b my-operator-work
+```
+
+This checkpoint contains all the scaffolding and setup completed in this section.
+
+## Optional: Deploy to Cluster
+
+For a more production-like setup, you can also deploy the controller to your cluster:
+
+```bash
+# Build and load the image into kind
+make docker-build IMG=backup-operator:latest
+kind load docker-image backup-operator:latest --name workshop
+
+# Deploy to the cluster
+make deploy IMG=backup-operator:latest
+
+# Check the deployment
+kubectl get deployment -n backup-operator-system
+kubectl logs -n backup-operator-system deployment/backup-operator-controller-manager
+```
+
+## Current Implementation Status
+
+At this point, our controller:
+1. ✅ Watches for Backup custom resources
+2. ✅ Initializes status for new resources  
+3. ✅ Updates phase from New to Scheduled
+4. ✅ Logs configuration details
+5. ❌ **TODO**: Implement actual backup functionality (next stage)
+
+## Common Issues and Troubleshooting
+
+### Controller Not Starting
+- **Issue**: `make run` fails with permission errors
+- **Solution**: Ensure you have proper kubeconfig and cluster access
+
+### CRD Installation Fails
+- **Issue**: `make install` fails
+- **Solution**: Check if you have cluster-admin permissions
+
+### Backup Resource Not Reconciling
+- **Issue**: Controller doesn't process backup resources
+- **Solution**: Check controller logs for errors, verify RBAC permissions
+
+## Validation Checklist
+
+To verify your understanding:
+
+1. ✅ Can you explain what a Kubernetes controller does?
+2. ✅ Can you identify the main components of the backup controller?
+3. ✅ Can you create and apply a Backup custom resource?
+4. ✅ Can you observe the controller reconciliation in the logs?
+5. ✅ Can you explain the different backup phases?
+
+## Checkpoint: Operator and Controller Setup Complete
+
+🎉 **Congratulations!** You've successfully completed the Operator SDK setup and backup controller implementation. At this point you should have:
+
+- ✅ A complete operator project structure in `cluster-backup-operator/`
+- ✅ Custom Resource Definition for Backup resources with proper types
+- ✅ Working controller with basic reconciliation logic
+- ✅ Status management for backup phases
+- ✅ RBAC permissions configured
+- ✅ Working Makefile with build targets
+- ✅ Sample Backup resources for testing
+
+### Checkpoint Branch
+
+If you need to catch up or start fresh from this point, you can checkout the checkpoint branch:
+
+```bash
+# Save any current work
+git stash
+
+# Checkout the checkpoint branch
+git checkout checkpoint-03-operator-sdk
+
+# Or if you want to start fresh
+git checkout checkpoint-03-operator-sdk
+git checkout -b my-operator-work
+```
+
+This checkpoint contains all the scaffolding and basic controller logic completed in this section.
+
 ## Next Steps
 
-Now that you have a working Operator SDK project, let's implement the backup controller logic:
-- [04 - Backup Controller Implementation](04-Backup-Controller)
+Now that you have a working controller foundation, the next stage will implement the actual backup functionality:
+
+**Next Stage**: [Buckup Controller Implementation →](04-Buckup-Controller-Implementation) - Implementing actual backup functionality with Minio storage integration.
+
+In the next stage, we'll:
+1. Implement the actual backup functionality to replace the TODO comments
+2. Connect to Minio storage
+3. Backup Kubernetes resources as YAML
+4. Handle backup scheduling with cron
+5. Implement retention policies
 
 ---
 
-**Navigation:**
-- **Previous:** [← Controllers](02-Controllers)
-- **Next:** [Backup Controller →](04-Backup-Controller)
-- **Home:** [Workshop Overview](Home)
+
+[← Controllers](02-Controllers)&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[Buckup Controller Implementation →](04-Buckup-Controller-Implementation)
+
+[Home](Home)
