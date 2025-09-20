@@ -3,6 +3,9 @@
 # Post-create script for Kubernetes Operators Workshop
 set -e
 
+echo "=== Starting post-create script ==="
+echo "Current directory: $(pwd)"
+echo "Current user: $(whoami)"
 echo "Setting up workshop environment..."
 
 # Install operator-sdk
@@ -28,11 +31,17 @@ sudo mv kustomize /usr/local/bin/
 
 # Verify installations
 echo "Verifying tool installations..."
+echo "Go version:"
 go version
+echo "kubectl version:"
 kubectl version --client
+echo "Helm version:"
 helm version
+echo "Operator SDK version:"
 operator-sdk version
+echo "Kind version:"
 kind version
+echo "Kustomize version:"
 kustomize version
 
-echo "Workshop environment setup complete!"
+echo "=== Workshop environment setup complete! ==="
