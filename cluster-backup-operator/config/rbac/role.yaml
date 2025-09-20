@@ -1,0 +1,32 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: manager-role
+rules:
+- apiGroups:
+  - backup.cnd.dk
+  resources:
+  - backups
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - backup.cnd.dk
+  resources:
+  - backups/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - backup.cnd.dk
+  resources:
+  - backups/status
+  verbs:
+  - get
+  - patch
+  - update
