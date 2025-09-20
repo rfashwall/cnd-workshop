@@ -14,6 +14,18 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Install Docker if not present
+if ! command_exists docker; then
+    echo "Installing Docker..."
+    curl -fsSL https://get.docker.com -o get-docker.sh
+    sudo sh get-docker.sh
+    sudo usermod -aG docker $USER
+    rm get-docker.sh
+    echo "Docker installed successfully"
+else
+    echo "Docker already installed"
+fi
+
 # Install operator-sdk
 if ! command_exists operator-sdk; then
     echo "Installing operator-sdk..."
