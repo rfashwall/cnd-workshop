@@ -14,21 +14,30 @@ rules:
   - secrets
   - services
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - apps
   resources:
   - deployments
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - backup.cnd.dk
   resources:
   - backups
+  - restores
   verbs:
   - create
   - delete
@@ -41,12 +50,14 @@ rules:
   - backup.cnd.dk
   resources:
   - backups/finalizers
+  - restores/finalizers
   verbs:
   - update
 - apiGroups:
   - backup.cnd.dk
   resources:
   - backups/status
+  - restores/status
   verbs:
   - get
   - patch
@@ -56,8 +67,12 @@ rules:
   resources:
   - ingresses
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - rbac.authorization.k8s.io
@@ -65,14 +80,22 @@ rules:
   - clusterrolebindings
   - clusterroles
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch
 - apiGroups:
   - storage.k8s.io
   resources:
   - storageclasses
   verbs:
+  - create
+  - delete
   - get
   - list
+  - patch
+  - update
   - watch

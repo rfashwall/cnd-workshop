@@ -20,4 +20,13 @@ resources:
   kind: Backup
   path: github.com/rfashwall/cnd-workshop/api/v1
   version: v1
+- api:
+    crdVersion: v1
+    namespaced: true
+  controller: true
+  domain: cnd.dk
+  group: backup
+  kind: Restore
+  path: github.com/rfashwall/cnd-workshop/api/v1
+  version: v1
 version: "3"

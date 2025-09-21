@@ -1,0 +1,29 @@
+apiVersion: backup.cnd.dk/v1
+kind: Restore
+metadata:
+  labels:
+    app.kubernetes.io/name: restore
+    app.kubernetes.io/instance: restore-sample
+    app.kubernetes.io/part-of: cluster-backup-operator
+    app.kubernetes.io/managed-by: kustomize
+    app.kubernetes.io/created-by: cluster-backup-operator
+  name: restore-sample
+spec:
+  source:
+    storageLocation:
+      provider: "minio"
+      bucket: "cluster-backups"
+      endpoint: "http://host.docker.internal:9000"
+      accessKey: "minioadmin"
+      secretKey: "minioadmin123"
+    backupPath: "backups/cluster-backup/2025-01-21T10-30-00"
+  target:
+    namespaces: ["restored-namespace"]
+    resourceTypes: ["deployments", "services", "configmaps", "secrets"]
+    conflictResolution: "skip"
+    namespaceMapping:
+      "default": "restored-namespace"
+  options:
+    dryRun: true
+    createNamespaces: true
+    skipClusterResources: true

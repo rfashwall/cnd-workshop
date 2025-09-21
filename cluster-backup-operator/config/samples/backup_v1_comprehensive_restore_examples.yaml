@@ -1,0 +1,99 @@
+# Example 1: Basic restore with dry run
+apiVersion: backup.cnd.dk/v1
+kind: Restore
+metadata:
+  name: basic-restore-dry-run
+  namespace: default
+spec:
+  source:
+    storageLocation:
+      provider: "minio"
+      bucket: "cluster-backups"
+      endpoint: "http://host.docker.internal:9000"
+      accessKey: "minioadmin"
+      secretKey: "minioadmin123"
+    backupPath: "backups/cluster-backup/2025-01-21T10-30-00"
+  target:
+    namespaces: ["test-namespace"]
+    resourceTypes: ["deployments", "services", "configmaps"]
+    conflictResolution: "skip"
+  options:
+    dryRun: true
+    createNamespaces: true
+
+---
+# Example 2: Cross-cluster restore with namespace mapping
+apiVersion: backup.cnd.dk/v1
+kind: Restore
+metadata:
+  name: cross-cluster-restore
+  namespace: default
+spec:
+  source:
+    storageLocation:
+      provider: "minio"
+      bucket: "cluster-backups"
+      endpoint: "http://host.docker.internal:9000"
+      accessKey: "minioadmin"
+      secretKey: "minioadmin123"
+    backupPath: "backups/cluster-backup/2025-01-21T10-30-00"
+  target:
+    namespaces: ["production", "staging"]
+    resourceTypes: ["deployments", "services", "configmaps", "secrets"]
+    conflictResolution: "overwrite"
+    namespaceMapping:
+      "default": "production"
+      "test": "staging"
+  options:
+    dryRun: false
+    createNamespaces: true
+    skipClusterResources: true
+
+---
+# Example 3: Selective restore with label selector
+apiVersion: backup.cnd.dk/v1
+kind: Restore
+metadata:
+  name: selective-restore
+  namespace: default
+spec:
+  source:
+    storageLocation:
+      provider: "minio"
+      bucket: "cluster-backups"
+      endpoint: "http://host.docker.internal:9000"
+      accessKey: "minioadmin"
+      secretKey: "minioadmin123"
+    backupPath: "backups/cluster-backup/2025-01-21T10-30-00"
+  target:
+    namespaces: ["restored-apps"]
+    resourceTypes: ["deployments", "services"]
+    conflictResolution: "fail"
+    labelSelector:
+      matchLabels:
+        app: "web-server"
+  options:
+    dryRun: false
+    createNamespaces: true
+
+---
+# Example 4: Validation-only restore
+apiVersion: backup.cnd.dk/v1
+kind: Restore
+metadata:
+  name: validation-restore
+  namespace: default
+spec:
+  source:
+    storageLocation:
+      provider: "minio"
+      bucket: "cluster-backups"
+      endpoint: "http://host.docker.internal:9000"
+      accessKey: "minioadmin"
+      secretKey: "minioadmin123"
+    backupPath: "backups/cluster-backup/2025-01-21T10-30-00"
+  target:
+    # No target specified - will restore to original namespaces
+    conflictResolution: "skip"
+  options:
+    validateOnly: true

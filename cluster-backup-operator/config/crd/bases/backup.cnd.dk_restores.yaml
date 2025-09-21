@@ -1,0 +1,334 @@
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.18.0
+  name: restores.backup.cnd.dk
+spec:
+  group: backup.cnd.dk
+  names:
+    kind: Restore
+    listKind: RestoreList
+    plural: restores
+    singular: restore
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .status.phase
+      name: Phase
+      type: string
+    - jsonPath: .spec.source.backupPath
+      name: Backup Path
+      type: string
+    - jsonPath: .status.resourceCounts.total
+      name: Restored
+      type: integer
+    - jsonPath: .metadata.creationTimestamp
+      name: Age
+      type: date
+    name: v1
+    schema:
+      openAPIV3Schema:
+        description: Restore is the Schema for the restores API
+        properties:
+          apiVersion:
+            description: |-
+              APIVersion defines the versioned schema of this representation of an object.
+              Servers should convert recognized schemas to the latest internal value, and
+              may reject unrecognized values.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+            type: string
+          kind:
+            description: |-
+              Kind is a string value representing the REST resource this object represents.
+              Servers may infer this from the endpoint the client submits requests to.
+              Cannot be updated.
+              In CamelCase.
+              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: RestoreSpec defines the desired state of Restore.
+            properties:
+              options:
+                description: Options for restore behavior
+                properties:
+                  createNamespaces:
+                    description: CreateNamespaces automatically creates target namespaces
+                      if they don't exist
+                    type: boolean
+                  dryRun:
+                    description: DryRun performs validation without actually restoring
+                      resources
+                    type: boolean
+                  skipClusterResources:
+                    description: SkipClusterResources skips restoration of cluster-scoped
+                      resources
+                    type: boolean
+                  validateOnly:
+                    description: ValidateOnly validates the backup without restoring
+                    type: boolean
+                type: object
+              source:
+                description: Source defines where to restore from
+                properties:
+                  backupPath:
+                    description: BackupPath is the specific backup to restore from
+                    type: string
+                  storageLocation:
+                    description: StorageLocation where the backup is stored
+                    properties:
+                      accessKey:
+                        description: AccessKey for Minio authentication (for workshop
+                          simplicity)
+                        type: string
+                      bucket:
+                        description: Bucket name
+                        type: string
+                      endpoint:
+                        description: Endpoint URL (for Minio)
+                        type: string
+                      provider:
+                        description: Provider (e.g., "minio", "s3", "gcs")
+                        type: string
+                      secretKey:
+                        description: SecretKey for Minio authentication (for workshop
+                          simplicity)
+                        type: string
+                    required:
+                    - bucket
+                    - provider
+                    type: object
+                required:
+                - backupPath
+                - storageLocation
+                type: object
+              target:
+                description: Target defines what and where to restore
+                properties:
+                  conflictResolution:
+                    description: 'ConflictResolution strategy when resources already
+                      exist: skip, overwrite, fail'
+                    type: string
+                  labelSelector:
+                    description: LabelSelector for filtering resources to restore
+                    properties:
+                      matchExpressions:
+                        description: matchExpressions is a list of label selector
+                          requirements. The requirements are ANDed.
+                        items:
+                          description: |-
+                            A label selector requirement is a selector that contains values, a key, and an operator that
+                            relates the key and values.
+                          properties:
+                            key:
+                              description: key is the label key that the selector
+                                applies to.
+                              type: string
+                            operator:
+                              description: |-
+                                operator represents a key's relationship to a set of values.
+                                Valid operators are In, NotIn, Exists and DoesNotExist.
+                              type: string
+                            values:
+                              description: |-
+                                values is an array of string values. If the operator is In or NotIn,
+                                the values array must be non-empty. If the operator is Exists or DoesNotExist,
+                                the values array must be empty. This array is replaced during a strategic
+                                merge patch.
+                              items:
+                                type: string
+                              type: array
+                              x-kubernetes-list-type: atomic
+                          required:
+                          - key
+                          - operator
+                          type: object
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      matchLabels:
+                        additionalProperties:
+                          type: string
+                        description: |-
+                          matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels
+                          map is equivalent to an element of matchExpressions, whose key field is "key", the
+                          operator is "In", and the values array contains only "value". The requirements are ANDed.
+                        type: object
+                    type: object
+                    x-kubernetes-map-type: atomic
+                  namespaceMapping:
+                    additionalProperties:
+                      type: string
+                    description: |-
+                      NamespaceMapping maps source namespaces to target namespaces
+                      Format: {"source-ns": "target-ns"}
+                    type: object
+                  namespaces:
+                    description: Namespaces to restore to. If empty, restores to original
+                      namespaces
+                    items:
+                      type: string
+                    type: array
+                  resourceTypes:
+                    description: ResourceTypes to restore. If empty, restores all
+                      resource types from backup
+                    items:
+                      type: string
+                    type: array
+                type: object
+            required:
+            - source
+            - target
+            type: object
+          status:
+            description: RestoreStatus defines the observed state of Restore.
+            properties:
+              backupInfo:
+                description: BackupInfo contains information about the source backup
+                properties:
+                  backupPath:
+                    description: BackupPath is the path in storage where the backup
+                      was found
+                    type: string
+                  backupTime:
+                    description: BackupTime is when the backup was created
+                    format: date-time
+                    type: string
+                  namespaces:
+                    description: Namespaces lists the namespaces found in the backup
+                    items:
+                      type: string
+                    type: array
+                  resourceTypes:
+                    description: ResourceTypes lists the types of resources found
+                      in the backup
+                    items:
+                      type: string
+                    type: array
+                  totalResources:
+                    description: TotalResources is the total number of resources in
+                      the backup
+                    format: int32
+                    type: integer
+                required:
+                - backupPath
+                type: object
+              completionTime:
+                description: CompletionTime is when the restore operation completed
+                format: date-time
+                type: string
+              failedResources:
+                description: FailedResources lists the resources that failed to restore
+                items:
+                  description: FailedResource represents a resource that failed to
+                    restore
+                  properties:
+                    apiVersion:
+                      description: APIVersion of the failed resource
+                      type: string
+                    error:
+                      description: Error message describing why the restoration failed
+                      type: string
+                    kind:
+                      description: Kind of the failed resource
+                      type: string
+                    name:
+                      description: Name of the failed resource
+                      type: string
+                    namespace:
+                      description: Namespace of the failed resource (empty for cluster-scoped
+                        resources)
+                      type: string
+                  required:
+                  - apiVersion
+                  - error
+                  - kind
+                  - name
+                  type: object
+                type: array
+              message:
+                description: Message provides additional information about the current
+                  state
+                type: string
+              phase:
+                description: Phase represents the current phase of the restore
+                type: string
+              resourceCounts:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                description: ResourceCounts tracks how many resources of each type
+                  were restored
+                type: object
+              restoredResources:
+                description: RestoredResources lists the resources that were successfully
+                  restored
+                items:
+                  description: RestoredResource represents a successfully restored
+                    resource
+                  properties:
+                    action:
+                      description: Action taken during restoration (created, updated)
+                      type: string
+                    apiVersion:
+                      description: APIVersion of the restored resource
+                      type: string
+                    kind:
+                      description: Kind of the restored resource
+                      type: string
+                    name:
+                      description: Name of the restored resource
+                      type: string
+                    namespace:
+                      description: Namespace of the restored resource (empty for cluster-scoped
+                        resources)
+                      type: string
+                  required:
+                  - action
+                  - apiVersion
+                  - kind
+                  - name
+                  type: object
+                type: array
+              skippedResources:
+                description: SkippedResources lists the resources that were skipped
+                  due to conflicts
+                items:
+                  description: SkippedResource represents a resource that was skipped
+                    during restoration
+                  properties:
+                    apiVersion:
+                      description: APIVersion of the skipped resource
+                      type: string
+                    kind:
+                      description: Kind of the skipped resource
+                      type: string
+                    name:
+                      description: Name of the skipped resource
+                      type: string
+                    namespace:
+                      description: Namespace of the skipped resource (empty for cluster-scoped
+                        resources)
+                      type: string
+                    reason:
+                      description: Reason why the resource was skipped
+                      type: string
+                  required:
+                  - apiVersion
+                  - kind
+                  - name
+                  - reason
+                  type: object
+                type: array
+              startTime:
+                description: StartTime is when the restore operation started
+                format: date-time
+                type: string
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}

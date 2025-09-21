@@ -3,11 +3,13 @@
 # It should be run by config/default
 resources:
 - bases/backup.cnd.dk_backups.yaml
+- bases/backup.cnd.dk_restores.yaml
 # +kubebuilder:scaffold:crdkustomizeresource
 
 patches:
 # [WEBHOOK] To enable webhook, uncomment all the sections with [WEBHOOK] prefix.
 # patches here are for enabling the conversion webhook for each CRD
+#- path: patches/webhook_in_restores.yaml
 # +kubebuilder:scaffold:crdkustomizewebhookpatch
 
 # [WEBHOOK] To enable webhook, uncomment the following section
