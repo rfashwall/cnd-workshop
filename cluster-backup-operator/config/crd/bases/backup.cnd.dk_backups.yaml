@@ -48,6 +48,18 @@ spec:
               source:
                 description: Source defines what to backup (e.g., namespace, deployment)
                 properties:
+                  excludeNamespaces:
+                    description: |-
+                      ExcludeNamespaces specifies namespaces to exclude from backup
+                      Useful when backing up all namespaces but want to skip system namespaces
+                    items:
+                      type: string
+                    type: array
+                  includeClusterResources:
+                    description: |-
+                      IncludeClusterResources indicates whether to include cluster-scoped resources
+                      like ClusterRoles, ClusterRoleBindings, PersistentVolumes, etc.
+                    type: boolean
                   labelSelector:
                     description: LabelSelector for resources to backup
                     properties:
@@ -95,25 +107,43 @@ spec:
                     type: object
                     x-kubernetes-map-type: atomic
                   namespace:
-                    description: Namespace to backup
+                    description: Namespace to backup (deprecated, use Namespaces instead)
                     type: string
-                required:
-                - namespace
+                  namespaces:
+                    description: |-
+                      Namespaces to backup. If empty, backs up all namespaces
+                      Use ["*"] to explicitly backup all namespaces
+                      Use ["namespace1", "namespace2"] to backup specific namespaces
+                    items:
+                      type: string
+                    type: array
+                  resourceTypes:
+                    description: |-
+                      ResourceTypes specifies which resource types to backup
+                      If empty, defaults to common resource types (deployments, services, configmaps, secrets)
+                    items:
+                      type: string
+                    type: array
                 type: object
               storageLocation:
                 description: StorageLocation defines where to store backups
                 properties:
+                  accessKey:
+                    description: AccessKey for Minio authentication (for workshop
+                      simplicity)
+                    type: string
                   bucket:
                     description: Bucket name
-                    type: string
-                  credentialsSecret:
-                    description: Credentials secret reference
                     type: string
                   endpoint:
                     description: Endpoint URL (for Minio)
                     type: string
                   provider:
                     description: Provider (e.g., "minio", "s3", "gcs")
+                    type: string
+                  secretKey:
+                    description: SecretKey for Minio authentication (for workshop
+                      simplicity)
                     type: string
                 required:
                 - bucket
@@ -131,6 +161,10 @@ spec:
                 description: BackupCount is the total number of backups performed
                 format: int32
                 type: integer
+              backupPath:
+                description: BackupPath is the path in storage where the backup is
+                  stored
+                type: string
               lastBackupTime:
                 description: LastBackupTime is the timestamp of the last successful
                   backup
@@ -148,6 +182,13 @@ spec:
               phase:
                 description: Phase represents the current phase of the backup
                 type: string
+              resourceCounts:
+                additionalProperties:
+                  format: int32
+                  type: integer
+                description: ResourceCounts tracks how many resources of each type
+                  were backed up
+                type: object
             type: object
         type: object
     served: true

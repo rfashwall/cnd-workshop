@@ -1,0 +1,22 @@
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: minio-backup-sample
+  namespace: default
+spec:
+  source:
+    namespace: "default"
+    # Optional: specify which resource types to backup
+    resourceTypes: ["deployments", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+    # Optional: use label selector to filter resources
+    labelSelector:
+      matchLabels:
+        backup: "enabled"
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"  # Update with actual Minio container IP
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"

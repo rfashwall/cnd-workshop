@@ -1,0 +1,81 @@
+# Example 1: Full namespace backup (all supported resource types)
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: full-namespace-backup
+  namespace: default
+spec:
+  source:
+    namespace: "production"
+    # When resourceTypes is empty, defaults to all supported types
+  schedule: "0 2 * * *"  # Daily at 2 AM
+  retention: "30d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 2: Selective resource type backup
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: config-only-backup
+  namespace: default
+spec:
+  source:
+    namespace: "staging"
+    # Only backup configuration resources
+    resourceTypes: ["configmaps", "secrets"]
+  schedule: "0 */6 * * *"  # Every 6 hours
+  retention: "7d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 3: Label-based selective backup
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: critical-apps-backup
+  namespace: default
+spec:
+  source:
+    namespace: "production"
+    # Only backup resources with specific labels
+    labelSelector:
+      matchLabels:
+        tier: "critical"
+        backup: "enabled"
+    resourceTypes: ["deployments", "services", "configmaps", "secrets"]
+  schedule: "0 */2 * * *"  # Every 2 hours
+  retention: "14d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 4: Development environment backup (frequent, short retention)
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: dev-backup
+  namespace: default
+spec:
+  source:
+    namespace: "development"
+    resourceTypes: ["deployments", "configmaps"]
+  schedule: "*/30 * * * *"  # Every 30 minutes
+  retention: "2d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"

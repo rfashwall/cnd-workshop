@@ -1,0 +1,126 @@
+# Example 1: Full cluster backup (all namespaces + cluster resources)
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: full-cluster-backup
+  namespace: default
+spec:
+  source:
+    namespaces: ["*"]  # All namespaces
+    includeClusterResources: true
+    excludeNamespaces: ["kube-system", "kube-public", "kube-node-lease"]
+  schedule: "@daily"  # Daily at midnight (cron descriptor)
+  retention: "30d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 2: Multi-namespace production backup
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: production-backup
+  namespace: default
+spec:
+  source:
+    namespaces: ["production", "prod-data", "prod-monitoring"]
+    resourceTypes: ["deployments", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+    labelSelector:
+      matchLabels:
+        environment: "production"
+        backup: "enabled"
+  schedule: "0 */6 * * *"  # Every 6 hours
+  retention: "14d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 3: Configuration-only backup (all namespaces)
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: config-backup
+  namespace: default
+spec:
+  source:
+    namespaces: ["*"]
+    resourceTypes: ["configmaps", "secrets"]
+    excludeNamespaces: ["kube-system", "kube-public", "kube-node-lease", "monitoring"]
+  schedule: "0 */2 * * *"  # Every 2 hours
+  retention: "7d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 4: Development environments backup
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: dev-environments-backup
+  namespace: default
+spec:
+  source:
+    namespaces: ["dev-team1", "dev-team2", "staging", "testing"]
+    resourceTypes: ["deployments", "configmaps"]
+    labelSelector:
+      matchLabels:
+        backup: "enabled"
+  schedule: "0 9-17 * * 1-5"  # Every hour from 9 AM to 5 PM, Monday to Friday
+  retention: "3d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 5: Critical applications with cluster resources
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: critical-apps-backup
+  namespace: default
+spec:
+  source:
+    namespaces: ["production", "infrastructure"]
+    resourceTypes: ["deployments", "services", "configmaps", "secrets", "persistentvolumeclaims"]
+    includeClusterResources: true
+    labelSelector:
+      matchLabels:
+        tier: "critical"
+  schedule: "0 */4 * * *"  # Every 4 hours
+  retention: "21d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"
+---
+# Example 6: Single namespace backup (backward compatibility)
+apiVersion: backup.cnd.dk/v1
+kind: Backup
+metadata:
+  name: single-namespace-backup
+  namespace: default
+spec:
+  source:
+    namespace: "production"  # Legacy single namespace field
+    resourceTypes: ["deployments", "services", "configmaps", "secrets"]
+  schedule: "0 1 * * *"  # Daily at 1 AM
+  retention: "10d"
+  storageLocation:
+    provider: "minio"
+    bucket: "k8s-backups"
+    endpoint: "http://172.17.0.3:9000"
+    accessKey: "minioadmin"
+    secretKey: "minioadmin123"

@@ -40,11 +40,29 @@ type BackupSpec struct {
 
 // BackupSource defines the source of the backup
 type BackupSource struct {
-	// Namespace to backup
-	Namespace string `json:"namespace"`
+	// Namespaces to backup. If empty, backs up all namespaces
+	// Use ["*"] to explicitly backup all namespaces
+	// Use ["namespace1", "namespace2"] to backup specific namespaces
+	Namespaces []string `json:"namespaces,omitempty"`
+
+	// Namespace to backup (deprecated, use Namespaces instead)
+	// +optional
+	Namespace string `json:"namespace,omitempty"`
 
 	// LabelSelector for resources to backup
 	LabelSelector *metav1.LabelSelector `json:"labelSelector,omitempty"`
+
+	// ResourceTypes specifies which resource types to backup
+	// If empty, defaults to common resource types (deployments, services, configmaps, secrets)
+	ResourceTypes []string `json:"resourceTypes,omitempty"`
+
+	// IncludeClusterResources indicates whether to include cluster-scoped resources
+	// like ClusterRoles, ClusterRoleBindings, PersistentVolumes, etc.
+	IncludeClusterResources bool `json:"includeClusterResources,omitempty"`
+
+	// ExcludeNamespaces specifies namespaces to exclude from backup
+	// Useful when backing up all namespaces but want to skip system namespaces
+	ExcludeNamespaces []string `json:"excludeNamespaces,omitempty"`
 }
 
 // StorageLocation defines backup storage configuration
@@ -58,8 +76,11 @@ type StorageLocation struct {
 	// Endpoint URL (for Minio)
 	Endpoint string `json:"endpoint,omitempty"`
 
-	// Credentials secret reference
-	CredentialsSecret string `json:"credentialsSecret,omitempty"`
+	// AccessKey for Minio authentication (for workshop simplicity)
+	AccessKey string `json:"accessKey,omitempty"`
+
+	// SecretKey for Minio authentication (for workshop simplicity)
+	SecretKey string `json:"secretKey,omitempty"`
 }
 
 // BackupStatus defines the observed state of Backup.
@@ -78,6 +99,12 @@ type BackupStatus struct {
 
 	// BackupCount is the total number of backups performed
 	BackupCount int32 `json:"backupCount,omitempty"`
+
+	// ResourceCounts tracks how many resources of each type were backed up
+	ResourceCounts map[string]int32 `json:"resourceCounts,omitempty"`
+
+	// BackupPath is the path in storage where the backup is stored
+	BackupPath string `json:"backupPath,omitempty"`
 }
 
 // BackupPhase represents the current phase of a backup

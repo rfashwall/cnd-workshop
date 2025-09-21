@@ -1,4 +1,8 @@
 ## Append samples of your project ##
 resources:
 - backup_v1_backup.yaml
+- backup_v1_minio_backup.yaml
+- backup_v1_comprehensive_examples.yaml
+- backup_v1_comprehensive_examples_v2.yaml
+- test_namespace_backup.yaml
 # +kubebuilder:scaffold:manifestskustomizesamples
