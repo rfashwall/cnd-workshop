@@ -66,6 +66,29 @@ else
     echo "kustomize already installed"
 fi
 
+GO_VERSION="1.25.1"
+
+FILENAME="go${GO_VERSION}.linux-amd64.tar.gz"
+URL="https://go.dev/dl/${FILENAME}"
+
+echo "Downloading Go v${GO_VERSION}..."
+wget --quiet --show-progress "${URL}"
+
+echo "Removing any old Go installation..."
+sudo rm -rf /usr/local/go
+
+echo "Installing Go..."
+sudo tar -C /usr/local -xzf "${FILENAME}"
+
+echo "🔧 Setting up PATH..."
+# Add the Go bin directory to the PATH if it's not already there
+# This line is added to ~/.profile for login shells
+grep -qF 'export PATH=$PATH:/usr/local/go/bin' ~/.profile || echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
+
+rm "${FILENAME}"
+
+echo -e "\n Go has been installed!"
+
 # Verify installations
 echo "=== Verifying tool installations ==="
 echo "Go version:"
