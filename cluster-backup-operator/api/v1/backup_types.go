@@ -58,8 +58,11 @@ type StorageLocation struct {
 	// Endpoint URL (for Minio)
 	Endpoint string `json:"endpoint,omitempty"`
 
-	// Credentials secret reference
-	CredentialsSecret string `json:"credentialsSecret,omitempty"`
+	// Username for authentication (plain text for now)
+	Username string `json:"username,omitempty"`
+
+	// Password for authentication (plain text for now)
+	Password string `json:"password,omitempty"`
 }
 
 // BackupStatus defines the observed state of Backup.
