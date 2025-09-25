@@ -32,7 +32,8 @@ import (
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	backupv1 "github.com/rfashwall/cnd-workshop/api/v1"
-	"github.com/robfig/cron"
+	"github.com/robfig/cron/v3"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
