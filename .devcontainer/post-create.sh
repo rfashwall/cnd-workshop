@@ -66,28 +66,51 @@ else
     echo "kustomize already installed"
 fi
 
-GO_VERSION="1.25.1"
 
-FILENAME="go${GO_VERSION}.linux-amd64.tar.gz"
-URL="https://go.dev/dl/${FILENAME}"
+# Upgrade Go to version 1.25
+echo "Checking Go version and upgrading if needed..."
+DESIRED_GO_VERSION="1.25.0"
+CURRENT_GO_VERSION=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//' || echo "none")
 
-echo "Downloading Go v${GO_VERSION}..."
-wget --quiet --show-progress "${URL}"
+if [[ "$CURRENT_GO_VERSION" != "$DESIRED_GO_VERSION" ]]; then
+    echo "Current Go version: $CURRENT_GO_VERSION"
+    echo "Upgrading Go to version $DESIRED_GO_VERSION..."
 
-echo "Removing any old Go installation..."
-sudo rm -rf /usr/local/go
+    # Determine architecture
+    export ARCH=$(case $(uname -m) in x86_64) echo -n amd64 ;; aarch64) echo -n arm64 ;; *) echo -n $(uname -m) ;; esac)
+    export OS=$(uname | awk '{print tolower($0)}')
 
-echo "Installing Go..."
-sudo tar -C /usr/local -xzf "${FILENAME}"
+    # Download and install Go 1.25
+    GO_TARBALL="go${DESIRED_GO_VERSION}.${OS}-${ARCH}.tar.gz"
+    GO_URL="https://golang.org/dl/${GO_TARBALL}"
 
-echo "🔧 Setting up PATH..."
-# Add the Go bin directory to the PATH if it's not already there
-# This line is added to ~/.profile for login shells
-grep -qF 'export PATH=$PATH:/usr/local/go/bin' ~/.profile || echo 'export PATH=$PATH:/usr/local/go/bin' >> ~/.profile
+    echo "Downloading Go ${DESIRED_GO_VERSION} for ${OS}_${ARCH}..."
+    cd /tmp
+    curl -LO "$GO_URL" || { echo "Failed to download Go ${DESIRED_GO_VERSION}"; exit 1; }
 
-rm "${FILENAME}"
+    # Remove existing Go installation and install new version
+    echo "Installing Go ${DESIRED_GO_VERSION}..."
+    sudo rm -rf /usr/local/go
+    sudo tar -C /usr/local -xzf "$GO_TARBALL" || { echo "Failed to extract Go"; exit 1; }
 
-echo -e "\n Go has been installed!"
+    # Clean up
+    rm -f "$GO_TARBALL"
+
+    # Update PATH for current session
+    export PATH="/usr/local/go/bin:$PATH"
+
+    echo "Go ${DESIRED_GO_VERSION} installed successfully"
+
+    # Verify the installation
+    NEW_GO_VERSION=$(go version 2>/dev/null | awk '{print $3}' | sed 's/go//' || echo "failed")
+    if [[ "$NEW_GO_VERSION" == "$DESIRED_GO_VERSION" ]]; then
+        echo "Go upgrade verified: $NEW_GO_VERSION"
+    else
+        echo "Warning: Go upgrade verification failed. Expected: $DESIRED_GO_VERSION, Got: $NEW_GO_VERSION"
+    fi
+else
+    echo "Go is already at the desired version: $CURRENT_GO_VERSION"
+fi
 
 # Verify installations
 echo "=== Verifying tool installations ==="
